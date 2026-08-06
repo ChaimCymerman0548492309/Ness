@@ -37,9 +37,9 @@ class EbayAutomation:
         # Delegates to SearchService to find item URLs under the given price.
         return self._search.search_items_by_name_under_price(query, max_price, limit)
 
-    def add_items_to_cart(self, urls: list[str]) -> None:
+    def add_items_to_cart(self, urls: list[str]) -> int:
         # Delegates to CartService to add each URL product to the shopping cart.
-        self._cart.add_items_to_cart(urls)
+        return self._cart.add_items_to_cart(urls)
 
     def assert_cart_total_not_exceeds(self, budget_per_item: float, items_count: int) -> None:
         # Delegates to CartAssertionService to verify the cart total within budget.

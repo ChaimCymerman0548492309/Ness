@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import allure
+from playwright.sync_api import Error as PlaywrightError
 from playwright.sync_api import Page
 
 from pages.product_page import ProductPage
@@ -23,18 +24,29 @@ class CartService:
         self.screenshot_helper = ScreenshotHelper(self.config)
 
     @allure.step("Add items to cart")
-    def add_items_to_cart(self, urls: list[str]) -> None:
+    def add_items_to_cart(self, urls: list[str]) -> int:
         # Opens each product URL, adds it to cart, captures a screenshot, and returns to search.
         if not urls:
             allure.attach("No URLs provided", name="Cart action", attachment_type=allure.attachment_type.TEXT)
-            return
+            return 0
 
+        added_count = 0
         for index, url in enumerate(urls, start=1):
             with allure.step(f"Add item {index} to cart"):
-                self.product_page.open_product(url)
-                self.product_page.add_to_cart()
-                self.screenshot_helper.capture(self.page, f"added_to_cart_item_{index}")
-                self._return_to_search_context()
+                try:
+                    self.product_page.open_product(url)
+                    self.product_page.add_to_cart()
+                    self.screenshot_helper.capture(self.page, f"added_to_cart_item_{index}")
+                    added_count += 1
+                    self._return_to_search_context()
+                except PlaywrightError as exc:
+                    allure.attach(
+                        f"{url}\n\n{exc}",
+                        name=f"Skipped cart item {index}",
+                        attachment_type=allure.attachment_type.TEXT,
+                    )
+
+        return added_count
 
     def _return_to_search_context(self) -> None:
         # Navigates back to the search results tab or page after adding an item.

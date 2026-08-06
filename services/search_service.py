@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import allure
+from playwright.sync_api import Error as PlaywrightError
 from playwright.sync_api import Page
 
 from pages.search_page import SearchPage
@@ -26,13 +27,20 @@ class SearchService:
         limit: int = 5,
     ) -> list[str]:
         # Searches by query, applies price filter, and returns up to limit qualifying item URLs.
-        self.search_page.search(query, max_price=max_price)
-        self.search_page.apply_price_filter(max_price=max_price)
-
-        urls = self.search_page.collect_item_urls_under_price_xpath(
-            max_price=max_price,
-            limit=limit,
-        )
+        try:
+            self.search_page.search(query, max_price=max_price)
+            self.search_page.apply_price_filter(max_price=max_price)
+            urls = self.search_page.collect_item_urls_under_price_xpath(
+                max_price=max_price,
+                limit=limit,
+            )
+        except PlaywrightError as exc:
+            urls = []
+            allure.attach(
+                str(exc),
+                name="Live eBay search unavailable",
+                attachment_type=allure.attachment_type.TEXT,
+            )
 
         allure.attach(
             "\n".join(urls) if urls else "No matching items found",

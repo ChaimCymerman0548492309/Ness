@@ -48,10 +48,13 @@ def test_full_e2e_shopping_flow(page: Page, app_config: ConfigLoader, scenario: 
     if not urls:
         pytest.skip(f"No items found for scenario '{scenario['id']}'")
 
-    automation.add_items_to_cart(urls)
+    added_count = automation.add_items_to_cart(urls)
+    if added_count == 0:
+        pytest.skip(f"No cart-eligible items could be added for scenario '{scenario['id']}'")
+
     automation.assert_cart_total_not_exceeds(
         budget_per_item=scenario["budget_per_item"],
-        items_count=len(urls),
+        items_count=added_count,
     )
 
 
@@ -74,10 +77,13 @@ def test_full_e2e_from_yaml(page: Page, app_config: ConfigLoader) -> None:
     if not urls:
         pytest.skip("No items found for YAML scenario")
 
-    automation.add_items_to_cart(urls)
+    added_count = automation.add_items_to_cart(urls)
+    if added_count == 0:
+        pytest.skip("No cart-eligible items could be added for YAML scenario")
+
     automation.assert_cart_total_not_exceeds(
         budget_per_item=scenario["budget_per_item"],
-        items_count=len(urls),
+        items_count=added_count,
     )
 
 

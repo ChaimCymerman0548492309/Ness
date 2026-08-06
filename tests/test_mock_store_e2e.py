@@ -8,6 +8,7 @@ import pytest
 from playwright.sync_api import Page, Route
 
 from ebay_automation import EbayAutomation
+from pages.search_page import SearchPage
 from utils.config_loader import ConfigLoader
 from utils.data_loader import DataLoader
 
@@ -449,3 +450,36 @@ def test_full_e2e_shopping_flow_with_mock_store(
         budget_per_item=scenario["budget_per_item"],
         items_count=added_count,
     )
+
+
+@pytest.mark.smoke
+@pytest.mark.mock_store
+def test_search_pagination_clicks_next(
+    page: Page,
+    app_config: ConfigLoader,
+    mock_ebay_store: None,
+) -> None:
+    # Proves SearchPage.go_to_next_page() clicks Next and loads the following results page.
+    search_page = SearchPage(page, app_config)
+    search_page.search("shoes", max_price=220)
+
+    page_status = page.get_by_text("Showing page")
+    page_one_titles = [
+        title.strip()
+        for title in page.locator(".s-item__title").all_inner_texts()
+        if title.strip() and "shop on ebay" not in title.lower()
+    ]
+
+    assert "page 1" in page_status.inner_text().lower()
+    assert search_page.go_to_next_page() is True
+
+    page_two_titles = [
+        title.strip()
+        for title in page.locator(".s-item__title").all_inner_texts()
+        if title.strip()
+    ]
+
+    assert "page 2" in page_status.inner_text().lower()
+    assert page_one_titles
+    assert page_two_titles
+    assert page_one_titles != page_two_titles

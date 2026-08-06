@@ -79,6 +79,45 @@ pytest -v -m mock_store
 
 This command runs the complete search -> add to cart -> cart total assertion flow through the same page objects and services, without depending on a public website that may block automation.
 
+### Watch the E2E Test Run in a Visible Browser
+
+To see the deterministic E2E flow running in real time, run the mock-store test with a visible browser:
+
+```powershell
+$env:HEADLESS="false"
+python -m pytest -v -m mock_store
+```
+
+To make the browser actions easier to follow, use the dev profile:
+
+```powershell
+$env:HEADLESS="false"
+$env:ENV_PROFILE="dev"
+python -m pytest -v -m mock_store
+```
+
+During the run you will see Chromium open and perform the same flow that is validated in the report:
+
+1. Open the store home page in guest mode.
+2. Navigate to the search results page for `shoes`.
+3. Apply the price range.
+4. Collect matching product URLs from the first page.
+5. Click `Next` and continue collecting until 5 matching products are found.
+6. Open each product page.
+7. Select a product variant, such as size `M` or `L`.
+8. Click `Add to cart`.
+9. Return to the search context and continue with the next product.
+10. Open the cart page.
+11. Read the cart total.
+12. Assert that the total does not exceed `budget_per_item * items_count`.
+
+After the demo, you can switch back to headless mode:
+
+```powershell
+$env:HEADLESS="true"
+$env:ENV_PROFILE="ci"
+```
+
 ---
 
 ## Reports

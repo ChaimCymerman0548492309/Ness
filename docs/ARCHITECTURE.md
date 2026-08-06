@@ -80,11 +80,11 @@ sequenceDiagram
 
     T->>A: authenticate()
     A-->>T: guest or logged in
-    T->>S: search_items_by_name_under_price()
+    T->>S: searchItemsByNameUnderPrice()
     S-->>T: list of URLs (≤ limit)
-    T->>C: add_items_to_cart(urls)
+    T->>C: addItemsToCart(urls)
     C-->>T: screenshots saved
-    T->>V: assert_cart_total_not_exceeds(budget, count)
+    T->>V: assertCartTotalNotExceeds(budget, count)
     V-->>T: pass / fail + trace
 ```
 

@@ -34,19 +34,19 @@ def test_full_e2e_shopping_flow(
     mock_ebay_store: None,
     scenario: dict,
 ) -> None:
-    # Runs the complete e2e flow on mock data: auth → search → add to cart → assert total.
+    # Full brief scenario: searchItemsByNameUnderPrice → addItemsToCart → assertCartTotalNotExceeds.
     allure.dynamic.title(scenario["name"])
     allure.dynamic.description(
-        f"Query={scenario['query']}, max_price={scenario['max_price']}, "
+        f"Query={scenario['query']}, maxPrice={scenario['max_price']}, "
         f"limit={scenario['limit']}"
     )
 
     automation = EbayAutomation(page, app_config)
     automation.authenticate()
 
-    urls = automation.search_items_by_name_under_price(
+    urls = automation.searchItemsByNameUnderPrice(
         query=scenario["query"],
-        max_price=scenario["max_price"],
+        maxPrice=scenario["max_price"],
         limit=scenario["limit"],
     )
 
@@ -54,13 +54,10 @@ def test_full_e2e_shopping_flow(
         f"Expected {scenario['limit']} URLs for '{scenario['id']}', got {len(urls)}"
     )
 
-    added_count = automation.add_items_to_cart(urls)
-    assert added_count == len(urls)
-
-    # Brief §4.3 scenario: assertCartTotalNotExceeds(budget, urls.length)
-    automation.assert_cart_total_not_exceeds(
-        budget_per_item=scenario["budget_per_item"],
-        items_count=len(urls),
+    automation.addItemsToCart(urls)
+    automation.assertCartTotalNotExceeds(
+        budgetPerItem=scenario["budget_per_item"],
+        itemsCount=len(urls),
     )
 
 
@@ -72,15 +69,15 @@ def test_full_e2e_from_yaml(
     app_config: ConfigLoader,
     mock_ebay_store: None,
 ) -> None:
-    # Proves YAML data-loading drives the same search API without repeating a full cart loop.
+    # Proves YAML data-loading drives searchItemsByNameUnderPrice.
     scenario = DataLoader(data_file=YAML_DATA_FILE).get_scenario("shoes_under_budget")
 
     automation = EbayAutomation(page, app_config)
     automation.authenticate()
 
-    urls = automation.search_items_by_name_under_price(
+    urls = automation.searchItemsByNameUnderPrice(
         query=scenario["query"],
-        max_price=scenario["max_price"],
+        maxPrice=scenario["max_price"],
         limit=scenario["limit"],
     )
 
@@ -95,12 +92,12 @@ def test_search_returns_urls_under_price(
     app_config: ConfigLoader,
     mock_ebay_store: None,
 ) -> None:
-    # Verifies that search returns a list of at most 5 URLs under the price limit.
+    # Verifies searchItemsByNameUnderPrice returns at most 5 URLs under the price limit.
     auth_service = AuthService(page, app_config)
     search_service = SearchService(page, app_config)
 
     auth_service.authenticate()
-    urls = search_service.search_items_by_name_under_price("shoes", 220, 5)
+    urls = search_service.searchItemsByNameUnderPrice("shoes", 220, 5)
 
     assert isinstance(urls, list)
     assert len(urls) == 5
@@ -114,7 +111,7 @@ def test_cart_total_assertion_signature(
     app_config: ConfigLoader,
     mock_ebay_store: None,
 ) -> None:
-    # Verifies the cart assertion service is callable and works on an empty mock cart.
+    # Verifies assertCartTotalNotExceeds is callable and works on an empty mock cart.
     cart_assertion_service = CartAssertionService(page, app_config)
-    assert callable(cart_assertion_service.assert_cart_total_not_exceeds)
-    cart_assertion_service.assert_cart_total_not_exceeds(budget_per_item=220, items_count=0)
+    assert callable(cart_assertion_service.assertCartTotalNotExceeds)
+    cart_assertion_service.assertCartTotalNotExceeds(budgetPerItem=220, itemsCount=0)

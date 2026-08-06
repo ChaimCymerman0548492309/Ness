@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from pathlib import Path
-
 import allure
 from playwright.sync_api import Page
 
@@ -22,10 +20,10 @@ class CartAssertionService:
         self.cart_page = CartPage(page, self.config)
         self.screenshot_helper = ScreenshotHelper(self.config)
 
-    @allure.step("Assert cart total does not exceed budget")
-    def assert_cart_total_not_exceeds(self, budget_per_item: float, items_count: int) -> None:
-        # Verifies the cart total is within budget_per_item multiplied by items_count.
-        threshold = budget_per_item * items_count
+    @allure.step("assertCartTotalNotExceeds")
+    def assertCartTotalNotExceeds(self, budgetPerItem: float, itemsCount: int) -> None:
+        # Verifies the cart total is within budgetPerItem multiplied by itemsCount.
+        threshold = budgetPerItem * itemsCount
         trace_dir = PROJECT_ROOT / self.config.get("trace_dir", "reports/traces")
         trace_dir.mkdir(parents=True, exist_ok=True)
         trace_path = trace_dir / "cart_assertion_trace.zip"
@@ -44,7 +42,7 @@ class CartAssertionService:
 
             assert actual_total <= threshold, (
                 f"Cart total {actual_total} exceeds threshold {threshold} "
-                f"({budget_per_item} x {items_count})"
+                f"({budgetPerItem} x {itemsCount})"
             )
         finally:
             self.page.context.tracing.stop(path=str(trace_path))

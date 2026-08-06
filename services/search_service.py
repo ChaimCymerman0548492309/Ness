@@ -19,19 +19,19 @@ class SearchService:
         self.config = config or ConfigLoader()
         self.search_page = SearchPage(page, self.config)
 
-    @allure.step("Search items by name under price: query={query}, max_price={max_price}")
-    def search_items_by_name_under_price(
+    @allure.step("searchItemsByNameUnderPrice: query={query}, maxPrice={maxPrice}")
+    def searchItemsByNameUnderPrice(
         self,
         query: str,
-        max_price: float,
+        maxPrice: float,
         limit: int = 5,
     ) -> list[str]:
         # Searches by query, applies price filter, and returns up to limit qualifying item URLs.
         try:
-            self.search_page.search(query, max_price=max_price)
-            self.search_page.apply_price_filter(max_price=max_price)
+            self.search_page.search(query, max_price=maxPrice)
+            self.search_page.apply_price_filter(max_price=maxPrice)
             urls = self.search_page.collect_item_urls_under_price_xpath(
-                max_price=max_price,
+                max_price=maxPrice,
                 limit=limit,
             )
         except PlaywrightError as exc:

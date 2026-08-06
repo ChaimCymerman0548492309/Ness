@@ -4,29 +4,31 @@ This document **displays every assignment requirement** from section 4 and maps 
 
 Public API facade: [`ebay_automation.py`](../ebay_automation.py)
 
+Function names match the brief **exactly**:
+
 ```python
 automation.authenticate()
-urls = automation.search_items_by_name_under_price("shoes", 220, 5)
-automation.add_items_to_cart(urls)
-automation.assert_cart_total_not_exceeds(220, len(urls))
+urls = automation.searchItemsByNameUnderPrice("shoes", 220, 5)
+automation.addItemsToCart(urls)
+automation.assertCartTotalNotExceeds(220, len(urls))
 ```
 
 ---
 
 ## 4. Project description — four core functions
 
-| # | Requirement (Hebrew) | Python API | Status | Implementation |
-|---|----------------------|------------|--------|----------------|
+| # | Requirement | Exact name in code | Status | Implementation |
+|---|-------------|--------------------|--------|----------------|
 | 1 | הזדהות | `authenticate()` | ✅ | `AuthService` → `LoginPage` |
-| 2 | פונקציית חיפוש עם תנאי מחיר | `search_items_by_name_under_price(query, max_price, limit=5)` | ✅ | `SearchService` → `SearchPage` |
-| 3 | `addItemsToCart` | `add_items_to_cart(urls)` | ✅ | `CartService` → `ProductPage` |
-| 4 | `assertCartTotalNotExceeds` | `assert_cart_total_not_exceeds(budget_per_item, items_count)` | ✅ | `CartAssertionService` → `CartPage` |
+| 2 | פונקציית חיפוש עם תנאי מחיר | `searchItemsByNameUnderPrice(query, maxPrice, limit=5)` | ✅ | `SearchService` → `SearchPage` |
+| 3 | `addItemsToCart` | `addItemsToCart(urls)` | ✅ | `CartService` → `ProductPage` |
+| 4 | `assertCartTotalNotExceeds` | `assertCartTotalNotExceeds(budgetPerItem, itemsCount)` | ✅ | `CartAssertionService` → `CartPage` |
 
 ---
 
 ## 4.1 Search with price condition
 
-### Required signature (TypeScript example from brief)
+### Required signature (from brief)
 
 ```typescript
 async function searchItemsByNameUnderPrice(
@@ -36,12 +38,12 @@ async function searchItemsByNameUnderPrice(
 ): Promise<string[]>
 ```
 
-### Python equivalent
+### Python (same names)
 
 ```python
-def search_items_by_name_under_price(
+def searchItemsByNameUnderPrice(
     query: str,
-    max_price: float,
+    maxPrice: float,
     limit: int = 5,
 ) -> list[str]
 ```
@@ -54,17 +56,15 @@ def search_items_by_name_under_price(
 | If a price filter exists on the page, use min/max to narrow results | ✅ | `SearchPage.apply_price_filter(min_price, max_price)` |
 | Collect with **XPath** up to `limit` items whose price is **<= maxPrice** | ✅ | `SearchPage.collect_item_urls_under_price_xpath()` + `PriceParser.is_within_budget()` (`<=`) |
 | Special case — fewer than `limit` items on the current page: if **Next** / paging exists, go to the next page and keep collecting until `limit` or pages end | ✅ | `SearchPage.go_to_next_page()` inside the collect loop |
-| If no paging is available, return however many were found (even if &lt; `limit`) | ✅ | Loop exits when Next is missing; returns `collected[:limit]` |
+| If no paging is available, return however many were found (even if less than `limit`) | ✅ | Loop exits when Next is missing; returns `collected[:limit]` |
 | Return: array of URLs (up to `limit`) that meet the price condition | ✅ | `list[str]` of product hrefs |
 | If fewer found, return what exists (**0 is valid**) | ✅ | Empty list when nothing qualifies |
 
 ### Usage example from brief
 
 ```python
-urls = automation.search_items_by_name_under_price("shoes", 220, 5)
+urls = automation.searchItemsByNameUnderPrice("shoes", 220, 5)
 ```
-
-Covered by: `tests/test_ebay_e2e.py::test_full_e2e_shopping_flow[shoes_under_budget]`
 
 ---
 
@@ -76,19 +76,17 @@ Covered by: `tests/test_ebay_e2e.py::test_full_e2e_shopping_flow[shoes_under_bud
 async function addItemsToCart(urls: string[]): Promise<void>
 ```
 
-### Python equivalent
+### Python (same name)
 
 ```python
-def add_items_to_cart(urls: list[str]) -> int
+def addItemsToCart(urls: list[str]) -> None
 ```
-
-Note: the brief shows `void`. The Python API also returns how many items were successfully added (useful for reporting). Behavior still matches every required step.
 
 ### Behavior checklist
 
 | Requirement | Status | Where |
 |-------------|--------|-------|
-| Loop over every URL and open the product page | ✅ | `CartService.add_items_to_cart()` → `ProductPage.open_product()` |
+| Loop over every URL and open the product page | ✅ | `CartService.addItemsToCart()` → `ProductPage.open_product()` |
 | If variants are required (size/color/qty), choose random available values | ✅ | `ProductPage.select_random_variants()` (called from `add_to_cart`) |
 | Click **Add to cart** | ✅ | `ProductPage.add_to_cart()` |
 | Return to the search screen / tab | ✅ | `CartService._return_to_search_context()` |
@@ -107,12 +105,12 @@ async function assertCartTotalNotExceeds(
 ): Promise<void>
 ```
 
-### Python equivalent
+### Python (same name)
 
 ```python
-def assert_cart_total_not_exceeds(
-    budget_per_item: float,
-    items_count: int,
+def assertCartTotalNotExceeds(
+    budgetPerItem: float,
+    itemsCount: int,
 ) -> None
 ```
 
@@ -122,7 +120,7 @@ def assert_cart_total_not_exceeds(
 |-------------|--------|-------|
 | Open the shopping cart | ✅ | `CartPage.open_cart()` |
 | Read subtotal / order total as shown on the page | ✅ | `CartPage.get_cart_total()` + `PriceParser` |
-| Compute threshold: `budgetPerItem * itemsCount` | ✅ | `threshold = budget_per_item * items_count` |
+| Compute threshold: `budgetPerItem * itemsCount` | ✅ | `threshold = budgetPerItem * itemsCount` |
 | Assert total does **not exceed** the threshold (`total <= threshold`) | ✅ | `assert actual_total <= threshold` |
 | Save Screenshot / Trace of the cart page | ✅ | Screenshot via `ScreenshotHelper` + Playwright `tracing` ZIP in `reports/traces/` attached to Allure |
 
@@ -130,35 +128,30 @@ def assert_cart_total_not_exceeds(
 
 ## Full scenario from the brief
 
-| Step | Brief | Implementation |
-|------|-------|----------------|
-| 1 | `searchItemsByNameUnderPrice("shoes", 220, 5)` → up to 5 links | `search_items_by_name_under_price("shoes", 220, 5)` |
-| 2 | `addItemsToCart(urls)` adds them all to the cart | `add_items_to_cart(urls)` |
-| 3 | `assertCartTotalNotExceeds(220, urls.length)` → cart total ≤ `220 * items` | `assert_cart_total_not_exceeds(220, len(urls))` |
+| Step | Brief | Code |
+|------|-------|------|
+| 1 | `searchItemsByNameUnderPrice("shoes", 220, 5)` | same name |
+| 2 | `addItemsToCart(urls)` | same name |
+| 3 | `assertCartTotalNotExceeds(220, urls.length)` | `assertCartTotalNotExceeds(220, len(urls))` |
 
-Implemented in:
-
-- `tests/test_ebay_e2e.py::test_full_e2e_shopping_flow` (data-driven, mock store)
-- Same POM/services path as live eBay (`--run-live-ebay`, opt-in)
+Implemented in: `tests/test_ebay_e2e.py::test_full_e2e_shopping_flow`
 
 ```python
-urls = automation.search_items_by_name_under_price(
-    query=scenario["query"],      # "shoes"
-    max_price=scenario["max_price"],  # 220
-    limit=scenario["limit"],      # 5
+urls = automation.searchItemsByNameUnderPrice(
+    query=scenario["query"],
+    maxPrice=scenario["max_price"],
+    limit=scenario["limit"],
 )
-automation.add_items_to_cart(urls)
-automation.assert_cart_total_not_exceeds(
-    budget_per_item=scenario["budget_per_item"],  # 220
-    items_count=len(urls),
+automation.addItemsToCart(urls)
+automation.assertCartTotalNotExceeds(
+    budgetPerItem=scenario["budget_per_item"],
+    itemsCount=len(urls),
 )
 ```
 
 ---
 
 ## Out of scope for section 4 (extra / supporting)
-
-These exist in the project but are **not** required by section 4:
 
 | Extra | Purpose |
 |-------|---------|

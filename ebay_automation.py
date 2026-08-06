@@ -1,5 +1,6 @@
 """
 Public API facade exposing the four core automation functions.
+Names match the assignment brief exactly (camelCase).
 """
 
 from __future__ import annotations
@@ -25,22 +26,22 @@ class EbayAutomation:
         self._cart_assertion = CartAssertionService(page, self._config)
 
     def authenticate(self, username: str | None = None, password: str | None = None) -> None:
-        # Delegates to AuthService to log in or continue as guest.
+        # הזדהות — login or continue as guest.
         self._auth.authenticate(username, password)
 
-    def search_items_by_name_under_price(
+    def searchItemsByNameUnderPrice(
         self,
         query: str,
-        max_price: float,
+        maxPrice: float,
         limit: int = 5,
     ) -> list[str]:
-        # Delegates to SearchService to find item URLs under the given price.
-        return self._search.search_items_by_name_under_price(query, max_price, limit)
+        # Returns up to `limit` item URLs with price <= maxPrice.
+        return self._search.searchItemsByNameUnderPrice(query, maxPrice, limit)
 
-    def add_items_to_cart(self, urls: list[str]) -> int:
-        # Delegates to CartService to add each URL product to the shopping cart.
-        return self._cart.add_items_to_cart(urls)
+    def addItemsToCart(self, urls: list[str]) -> None:
+        # Opens each product, selects variants, adds to cart, returns to search, screenshots.
+        self._cart.addItemsToCart(urls)
 
-    def assert_cart_total_not_exceeds(self, budget_per_item: float, items_count: int) -> None:
-        # Delegates to CartAssertionService to verify the cart total within budget.
-        self._cart_assertion.assert_cart_total_not_exceeds(budget_per_item, items_count)
+    def assertCartTotalNotExceeds(self, budgetPerItem: float, itemsCount: int) -> None:
+        # Asserts cart total <= budgetPerItem * itemsCount and saves screenshot/trace.
+        self._cart_assertion.assertCartTotalNotExceeds(budgetPerItem, itemsCount)

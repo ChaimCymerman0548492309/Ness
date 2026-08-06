@@ -23,21 +23,19 @@ class CartService:
         self.search_page = SearchPage(page, self.config)
         self.screenshot_helper = ScreenshotHelper(self.config)
 
-    @allure.step("Add items to cart")
-    def add_items_to_cart(self, urls: list[str]) -> int:
+    @allure.step("addItemsToCart")
+    def addItemsToCart(self, urls: list[str]) -> None:
         # Opens each product URL, adds it to cart, captures a screenshot, and returns to search.
         if not urls:
             allure.attach("No URLs provided", name="Cart action", attachment_type=allure.attachment_type.TEXT)
-            return 0
+            return
 
-        added_count = 0
         for index, url in enumerate(urls, start=1):
             with allure.step(f"Add item {index} to cart"):
                 try:
                     self.product_page.open_product(url)
                     self.product_page.add_to_cart()
                     self.screenshot_helper.capture(self.page, f"added_to_cart_item_{index}")
-                    added_count += 1
                     self._return_to_search_context()
                 except PlaywrightError as exc:
                     allure.attach(
@@ -45,8 +43,7 @@ class CartService:
                         name=f"Skipped cart item {index}",
                         attachment_type=allure.attachment_type.TEXT,
                     )
-
-        return added_count
+                    raise
 
     def _return_to_search_context(self) -> None:
         # Navigates back to the search results tab or page after adding an item.

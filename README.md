@@ -49,6 +49,9 @@ cp config/env.example .env
 # כל הבדיקות שאינן תלויות באתר חי (ברירת מחדל)
 pytest
 
+# תרחיש E2E מלא ודטרמיניסטי לדוח/הגשה
+pytest -m mock_store
+
 # רק smoke שאינו תלוי באתר חי
 pytest -m smoke
 
@@ -191,7 +194,7 @@ scenarios:
 |------|------|
 | **התחברות** | Guest mode כברירת מחדל; ניתן להגדיר `EBAY_USERNAME` / `EBAY_PASSWORD` ב-`.env` |
 | **מטבע** | USD (eBay.com) |
-| **אתר** | בדיקות מול eBay מסומנות `live_ebay` ומדלגות כברירת מחדל; להרצה חיה השתמשו ב-`--run-live-ebay` או `RUN_LIVE_EBAY=1` |
+| **אתר** | תרחיש `mock_store` מספק דוח E2E מלא ויציב דרך אותו POM; בדיקות מול eBay חי מסומנות `live_ebay` ומופעלות עם `--run-live-ebay` או `RUN_LIVE_EBAY=1` |
 | **סל** | חלק מהפריטים דורשים התחברות או לא ניתנים להוספה — הבדיקה עלולה להידלג (`pytest.skip`) |
 | **מחירים** | מחירים מוצגים בפורמטים שונים (טווחים, מבצעים) — `PriceParser` מטפל בנפוצים |
 

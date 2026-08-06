@@ -1,6 +1,7 @@
 default:
   base_url: "https://www.ebay.com"
   timeout_ms: 30000
+  navigation_retries: 2
   headless: true
   screenshot_dir: "reports/screenshots"
   trace_dir: "reports/traces"
@@ -12,7 +13,7 @@ profiles:
     slow_mo: 100
   ci:
     headless: true
-    retries: 1
+    navigation_retries: 3
   staging:
     base_url: "https://www.ebay.com"
 

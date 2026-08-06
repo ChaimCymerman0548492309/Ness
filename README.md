@@ -189,6 +189,7 @@ scenarios:
 | **התחברות** | Guest mode כברירת מחדל; ניתן להגדיר `EBAY_USERNAME` / `EBAY_PASSWORD` ב-`.env` |
 | **מטבע** | USD (eBay.com) |
 | **אתר** | eBay עלול להציג CAPTCHA / geo-blocking — ייתכנו כשלי ריצה בסביבות CI |
+| **רשת (Windows)** | שגיאת `net::ERR_ABORTED` בניווט — הגדר `ENV_PROFILE=ci` או `NAVIGATION_RETRIES=3` ב-`.env` |
 | **סל** | חלק מהפריטים דורשים התחברות או לא ניתנים להוספה — הבדיקה עלולה להידלג (`pytest.skip`) |
 | **מחירים** | מחירים מוצגים בפורמטים שונים (טווחים, מבצעים) — `PriceParser` מטפל בנפוצים |
 

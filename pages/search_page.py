@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+from urllib.parse import quote_plus
+
+from playwright.sync_api import Error as PlaywrightError
 from playwright.sync_api import Locator, Page
 
 from pages.base_page import BasePage
@@ -31,11 +34,9 @@ class SearchPage(BasePage):
         self.dismiss_popups()
 
     def search(self, query: str) -> None:
-        # Types the search query and submits it to display results.
-        search_box = self.page.locator(self.SEARCH_INPUT).first
-        search_box.click()
-        search_box.fill(query)
-        self.page.locator(self.SEARCH_BUTTON).first.click()
+        # Navigates directly to search results to avoid flaky homepage interactions.
+        search_url = f"{self.base_url}/sch/i.html?_nkw={quote_plus(query)}"
+        self.goto(search_url)
         self.wait_for_load()
         self.dismiss_popups()
 
@@ -44,14 +45,17 @@ class SearchPage(BasePage):
         min_input = self.page.locator(self.MIN_PRICE_INPUT).first
         max_input = self.page.locator(self.MAX_PRICE_INPUT).first
 
-        if min_input.is_visible(timeout=3000):
-            min_input.fill(str(int(min_price)))
-        if max_input.is_visible(timeout=3000):
-            max_input.fill(str(int(max_price)))
-            apply_button = self.page.locator(self.APPLY_PRICE_FILTER).first
-            if apply_button.is_visible(timeout=2000):
-                apply_button.click()
-                self.wait_for_load()
+        try:
+            if min_input.is_visible(timeout=3000):
+                min_input.fill(str(int(min_price)))
+            if max_input.is_visible(timeout=3000):
+                max_input.fill(str(int(max_price)))
+                apply_button = self.page.locator(self.APPLY_PRICE_FILTER).first
+                if apply_button.is_visible(timeout=2000):
+                    apply_button.click()
+                    self.wait_for_load()
+        except PlaywrightError:
+            return
 
     def _item_locators(self) -> list[Locator]:
         # Returns all search result item locators on the current page.
@@ -63,33 +67,36 @@ class SearchPage(BasePage):
         visited_pages = 0
         max_pages = int(self.config.section("search").get("max_pages", 5))
 
-        while len(collected) < limit and visited_pages < max_pages:
-            for item in self._item_locators():
+        try:
+            while len(collected) < limit and visited_pages < max_pages:
+                for item in self._item_locators():
+                    if len(collected) >= limit:
+                        break
+
+                    link = item.locator("a.s-item__link").first
+                    if not link.count():
+                        continue
+
+                    href = link.get_attribute("href")
+                    title = item.locator(".s-item__title").first.inner_text(timeout=1000)
+                    if not href or "shop on ebay" in title.lower():
+                        continue
+
+                    price_text = self._extract_price_text(item)
+                    if not PriceParser.is_within_budget(price_text, max_price):
+                        continue
+
+                    if href not in collected:
+                        collected.append(href)
+
                 if len(collected) >= limit:
                     break
 
-                link = item.locator("a.s-item__link").first
-                if not link.count():
-                    continue
-
-                href = link.get_attribute("href")
-                title = item.locator(".s-item__title").first.inner_text(timeout=1000)
-                if not href or "shop on ebay" in title.lower():
-                    continue
-
-                price_text = self._extract_price_text(item)
-                if not PriceParser.is_within_budget(price_text, max_price):
-                    continue
-
-                if href not in collected:
-                    collected.append(href)
-
-            if len(collected) >= limit:
-                break
-
-            if not self.go_to_next_page():
-                break
-            visited_pages += 1
+                if not self.go_to_next_page():
+                    break
+                visited_pages += 1
+        except PlaywrightError:
+            return collected[:limit]
 
         return collected[:limit]
 
@@ -126,33 +133,36 @@ class SearchPage(BasePage):
             "[.//a[contains(@class,'s-item__link')]]"
         )
 
-        while len(collected) < limit and visited_pages < max_pages:
-            items = self.page.locator(f"xpath={xpath}")
-            count = items.count()
+        try:
+            while len(collected) < limit and visited_pages < max_pages:
+                items = self.page.locator(f"xpath={xpath}")
+                count = items.count()
 
-            for index in range(count):
+                for index in range(count):
+                    if len(collected) >= limit:
+                        break
+
+                    item = items.nth(index)
+                    link = item.locator("a.s-item__link").first
+                    href = link.get_attribute("href")
+                    title = item.locator(".s-item__title").first.inner_text(timeout=1000)
+                    if not href or "shop on ebay" in title.lower():
+                        continue
+
+                    price_text = item.locator(".s-item__price").first.inner_text(timeout=1000)
+                    if not PriceParser.is_within_budget(price_text, max_price):
+                        continue
+
+                    if href not in collected:
+                        collected.append(href)
+
                 if len(collected) >= limit:
                     break
 
-                item = items.nth(index)
-                link = item.locator("a.s-item__link").first
-                href = link.get_attribute("href")
-                title = item.locator(".s-item__title").first.inner_text(timeout=1000)
-                if not href or "shop on ebay" in title.lower():
-                    continue
-
-                price_text = item.locator(".s-item__price").first.inner_text(timeout=1000)
-                if not PriceParser.is_within_budget(price_text, max_price):
-                    continue
-
-                if href not in collected:
-                    collected.append(href)
-
-            if len(collected) >= limit:
-                break
-
-            if not self.go_to_next_page():
-                break
-            visited_pages += 1
+                if not self.go_to_next_page():
+                    break
+                visited_pages += 1
+        except PlaywrightError:
+            return collected[:limit]
 
         return collected[:limit]

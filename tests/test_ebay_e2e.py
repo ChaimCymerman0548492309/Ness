@@ -26,6 +26,7 @@ def _enabled_scenarios() -> list[dict]:
 
 @pytest.mark.e2e
 @pytest.mark.data_driven
+@pytest.mark.live_ebay
 @pytest.mark.parametrize("scenario", _enabled_scenarios(), ids=lambda item: item["id"])
 def test_full_e2e_shopping_flow(page: Page, app_config: ConfigLoader, scenario: dict) -> None:
     # Runs the complete e2e flow: auth → search → add to cart → assert cart total.
@@ -56,6 +57,7 @@ def test_full_e2e_shopping_flow(page: Page, app_config: ConfigLoader, scenario: 
 
 @pytest.mark.e2e
 @pytest.mark.data_driven
+@pytest.mark.live_ebay
 def test_full_e2e_from_yaml(page: Page, app_config: ConfigLoader) -> None:
     # Runs the e2e flow using a scenario loaded from the YAML data file.
     scenario = DataLoader(data_file=YAML_DATA_FILE).get_scenario("shoes_under_budget")
@@ -80,6 +82,7 @@ def test_full_e2e_from_yaml(page: Page, app_config: ConfigLoader) -> None:
 
 
 @pytest.mark.smoke
+@pytest.mark.live_ebay
 def test_search_returns_urls_under_price(page: Page, app_config: ConfigLoader) -> None:
     # Verifies that search returns a list of at most 5 URLs under the price limit.
     auth_service = AuthService(page, app_config)

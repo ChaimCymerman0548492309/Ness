@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from playwright.sync_api import Locator, Page
+from playwright.sync_api import Locator, Page, TimeoutError as PlaywrightTimeoutError
 
 from pages.base_page import BasePage
 from utils.config_loader import ConfigLoader
@@ -24,6 +24,7 @@ class SearchPage(BasePage):
         # Initializes the search page with the base URL from configuration.
         super().__init__(page, config)
         self.base_url = self.config.get("base_url", "https://www.ebay.com")
+        self.short_timeout = int(self.config.section("search").get("short_timeout_ms", 1000))
 
     def open(self) -> None:
         # Opens the eBay homepage and dismisses any pop-up banners.
@@ -72,8 +73,8 @@ class SearchPage(BasePage):
                 if not link.count():
                     continue
 
-                href = link.get_attribute("href")
-                title = item.locator(".s-item__title").first.inner_text(timeout=1000)
+                href = self._safe_get_attribute(link, "href")
+                title = self._safe_inner_text(item.locator(".s-item__title").first)
                 if not href or "shop on ebay" in title.lower():
                     continue
 
@@ -93,6 +94,20 @@ class SearchPage(BasePage):
 
         return collected[:limit]
 
+    def _safe_get_attribute(self, locator: Locator, name: str) -> str | None:
+        # Avoids spending the full page timeout on stale result cards.
+        try:
+            return locator.get_attribute(name, timeout=self.short_timeout)
+        except PlaywrightTimeoutError:
+            return None
+
+    def _safe_inner_text(self, locator: Locator) -> str:
+        # Reads optional text with a short timeout so one bad item does not stall collection.
+        try:
+            return locator.inner_text(timeout=self.short_timeout)
+        except PlaywrightTimeoutError:
+            return ""
+
     def _extract_price_text(self, item: Locator) -> str:
         # Reads the displayed price text from a single search result item card.
         price_candidates = [
@@ -103,16 +118,19 @@ class SearchPage(BasePage):
         for selector in price_candidates:
             locator = item.locator(selector).first
             if locator.count() and locator.is_visible(timeout=500):
-                return locator.inner_text()
+                return self._safe_inner_text(locator)
         return ""
 
     def go_to_next_page(self) -> bool:
         # Clicks the Next pagination button and returns True if navigation succeeded.
         next_button = self.page.locator(self.NEXT_PAGE).first
-        if next_button.count() and next_button.is_visible(timeout=2000):
-            next_button.click()
-            self.wait_for_load()
-            return True
+        try:
+            if next_button.count() and next_button.is_visible(timeout=2000):
+                next_button.click()
+                self.wait_for_load()
+                return True
+        except PlaywrightTimeoutError:
+            return False
         return False
 
     def collect_item_urls_under_price_xpath(self, max_price: float, limit: int) -> list[str]:
@@ -128,7 +146,7 @@ class SearchPage(BasePage):
 
         while len(collected) < limit and visited_pages < max_pages:
             items = self.page.locator(f"xpath={xpath}")
-            count = items.count()
+            count = min(items.count(), int(self.config.section("search").get("max_items_per_page", 30)))
 
             for index in range(count):
                 if len(collected) >= limit:
@@ -136,12 +154,12 @@ class SearchPage(BasePage):
 
                 item = items.nth(index)
                 link = item.locator("a.s-item__link").first
-                href = link.get_attribute("href")
-                title = item.locator(".s-item__title").first.inner_text(timeout=1000)
+                href = self._safe_get_attribute(link, "href")
+                title = self._safe_inner_text(item.locator(".s-item__title").first)
                 if not href or "shop on ebay" in title.lower():
                     continue
 
-                price_text = item.locator(".s-item__price").first.inner_text(timeout=1000)
+                price_text = self._safe_inner_text(item.locator(".s-item__price").first)
                 if not PriceParser.is_within_budget(price_text, max_price):
                     continue
 

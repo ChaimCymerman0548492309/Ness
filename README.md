@@ -46,20 +46,23 @@ cp config/env.example .env
 ## הרצת בדיקות
 
 ```bash
-# כל הבדיקות
+# כל הבדיקות שאינן תלויות באתר חי (ברירת מחדל)
 pytest
 
-# רק smoke (מהיר, ללא תרחיש מלא)
+# רק smoke שאינו תלוי באתר חי
 pytest -m smoke
 
+# הרצה מפורשת מול eBay חי
+pytest --run-live-ebay
+
 # תרחיש data-driven מלא (JSON)
-pytest -m "e2e and data_driven" -k "not yaml"
+pytest --run-live-ebay -m "e2e and data_driven" -k "not yaml"
 
 # תרחיש data-driven מ-YAML
-pytest tests/test_ebay_e2e.py::test_full_e2e_from_yaml
+pytest --run-live-ebay tests/test_ebay_e2e.py::test_full_e2e_from_yaml
 
 # עם פרופיל dev (דפדפן גלוי)
-ENV_PROFILE=dev pytest -m smoke
+ENV_PROFILE=dev pytest --run-live-ebay -m smoke
 
 # CI (headless)
 ENV_PROFILE=ci pytest
@@ -188,7 +191,7 @@ scenarios:
 |------|------|
 | **התחברות** | Guest mode כברירת מחדל; ניתן להגדיר `EBAY_USERNAME` / `EBAY_PASSWORD` ב-`.env` |
 | **מטבע** | USD (eBay.com) |
-| **אתר** | eBay עלול להציג CAPTCHA / geo-blocking — ייתכנו כשלי ריצה בסביבות CI |
+| **אתר** | בדיקות מול eBay מסומנות `live_ebay` ומדלגות כברירת מחדל; להרצה חיה השתמשו ב-`--run-live-ebay` או `RUN_LIVE_EBAY=1` |
 | **סל** | חלק מהפריטים דורשים התחברות או לא ניתנים להוספה — הבדיקה עלולה להידלג (`pytest.skip`) |
 | **מחירים** | מחירים מוצגים בפורמטים שונים (טווחים, מבצעים) — `PriceParser` מטפל בנפוצים |
 

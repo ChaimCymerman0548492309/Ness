@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 import pytest
@@ -10,6 +11,37 @@ from playwright.sync_api import Browser, BrowserContext, Page, sync_playwright
 from utils.config_loader import ConfigLoader, PROJECT_ROOT
 
 config = ConfigLoader()
+LIVE_EBAY_ENV_VALUES = {"1", "true", "yes", "on"}
+
+
+def pytest_addoption(parser: pytest.Parser) -> None:
+    # Live eBay tests are opt-in because the public site can throttle, CAPTCHA, or block automation.
+    group = parser.getgroup("ebay")
+    group.addoption(
+        "--run-live-ebay",
+        action="store_true",
+        default=False,
+        help="Run tests marked live_ebay against ebay.com.",
+    )
+
+
+def pytest_configure(config: pytest.Config) -> None:
+    config.addinivalue_line("markers", "live_ebay: tests that exercise the live eBay website")
+
+
+def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item]) -> None:
+    run_live = config.getoption("--run-live-ebay") or (
+        os.getenv("RUN_LIVE_EBAY", "").lower() in LIVE_EBAY_ENV_VALUES
+    )
+    if run_live:
+        return
+
+    skip_live = pytest.mark.skip(
+        reason="live eBay test skipped by default; use --run-live-ebay or RUN_LIVE_EBAY=1"
+    )
+    for item in items:
+        if "live_ebay" in item.keywords:
+            item.add_marker(skip_live)
 
 
 @pytest.fixture(scope="session")

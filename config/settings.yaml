@@ -19,6 +19,8 @@ profiles:
 search:
   default_limit: 5
   max_pages: 5
+  max_items_per_page: 30
+  short_timeout_ms: 1000
 
 cart:
   guest_mode: true

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from playwright.sync_api import Error as PlaywrightError
 from playwright.sync_api import Locator, Page, TimeoutError as PlaywrightTimeoutError
 
 from utils.config_loader import ConfigLoader
@@ -31,7 +32,7 @@ class BasePage:
             if locator.first.is_visible(timeout=timeout):
                 locator.first.click(timeout=timeout)
                 return True
-        except PlaywrightTimeoutError:
+        except (PlaywrightTimeoutError, PlaywrightError):
             return False
         return False
 

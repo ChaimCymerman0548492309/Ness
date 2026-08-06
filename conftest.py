@@ -57,6 +57,7 @@ def browser(app_config: ConfigLoader) -> Browser:
         browser = playwright.chromium.launch(
             headless=bool(app_config.get("headless", True)),
             slow_mo=int(app_config.get("slow_mo", 0) or 0),
+            args=["--disable-dev-shm-usage", "--no-sandbox"],
         )
         yield browser
         browser.close()

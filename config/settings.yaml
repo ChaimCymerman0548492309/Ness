@@ -1,0 +1,24 @@
+default:
+  base_url: "https://www.ebay.com"
+  timeout_ms: 30000
+  headless: true
+  screenshot_dir: "reports/screenshots"
+  trace_dir: "reports/traces"
+  currency: "USD"
+
+profiles:
+  dev:
+    headless: false
+    slow_mo: 100
+  ci:
+    headless: true
+    retries: 1
+  staging:
+    base_url: "https://www.ebay.com"
+
+search:
+  default_limit: 5
+  max_pages: 5
+
+cart:
+  guest_mode: true

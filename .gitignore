@@ -1,0 +1,33 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+dist/
+build/
+.venv/
+venv/
+/env/
+.env
+
+# Playwright
+playwright-report/
+test-results/
+
+# Reports
+reports/allure-results/
+reports/allure-report/
+reports/screenshots/
+reports/traces/
+reports/pytest-report.html
+reports/*.xml
+
+# IDE
+.idea/
+.vscode/
+*.swp
+.DS_Store
+
+# Legacy frontend (removed)
+node_modules/

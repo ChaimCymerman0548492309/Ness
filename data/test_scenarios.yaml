@@ -1,0 +1,19 @@
+# Data-driven test scenarios (YAML format)
+# Scenarios with enabled: false are skipped during test collection.
+
+scenarios:
+  - id: shoes_under_budget
+    name: "Search shoes under $220 and verify cart total"
+    query: shoes
+    max_price: 220
+    limit: 5
+    budget_per_item: 220
+    enabled: true
+
+  - id: headphones_under_budget
+    name: "Search headphones under $80 and verify cart total"
+    query: headphones
+    max_price: 80
+    limit: 3
+    budget_per_item: 80
+    enabled: true

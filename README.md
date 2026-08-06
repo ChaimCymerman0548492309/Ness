@@ -112,7 +112,23 @@ flowchart LR
     C --> D[assertCartTotalNotExceeds]
 ```
 
-Example:
+Example (module-level functions — same names as the brief):
+
+```python
+from ebay_automation import (
+    authenticate,
+    searchItemsByNameUnderPrice,
+    addItemsToCart,
+    assertCartTotalNotExceeds,
+)
+
+authenticate(page)
+urls = searchItemsByNameUnderPrice(page, "shoes", 220, 5)
+addItemsToCart(page, urls)
+assertCartTotalNotExceeds(page, 220, len(urls))
+```
+
+Or via the facade class:
 
 ```python
 from ebay_automation import EbayAutomation
@@ -190,10 +206,13 @@ JUnit XML is at `reports/junit.xml` (CI / graders).
 
 ## Data-driven tests
 
-Scenarios live outside code:
+Scenarios live outside code (JSON / CSV / YAML):
 
 - `data/test_scenarios.json`
+- `data/test_scenarios.csv`
 - `data/test_scenarios.yaml`
+
+Field names match the brief parameter names: `query`, `maxPrice`, `limit`, `budgetPerItem`.
 
 Only entries with `"enabled": true` are collected.
 

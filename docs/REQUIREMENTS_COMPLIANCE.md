@@ -2,15 +2,22 @@
 
 This document **displays every assignment requirement** from section 4 and maps it to the Python + Playwright implementation.
 
-Public API facade: [`ebay_automation.py`](../ebay_automation.py)
+Public API: [`ebay_automation.py`](../ebay_automation.py) — module-level functions **and** `EbayAutomation` facade.
 
-Function names match the brief **exactly**:
+Function names match the brief **exactly** (camelCase):
 
 ```python
-automation.authenticate()
-urls = automation.searchItemsByNameUnderPrice("shoes", 220, 5)
-automation.addItemsToCart(urls)
-automation.assertCartTotalNotExceeds(220, len(urls))
+from ebay_automation import (
+    authenticate,
+    searchItemsByNameUnderPrice,
+    addItemsToCart,
+    assertCartTotalNotExceeds,
+)
+
+authenticate(page)
+urls = searchItemsByNameUnderPrice(page, "shoes", 220, 5)
+addItemsToCart(page, urls)
+assertCartTotalNotExceeds(page, 220, len(urls))
 ```
 
 ---
@@ -139,12 +146,12 @@ Implemented in: `tests/test_ebay_e2e.py::test_full_e2e_shopping_flow`
 ```python
 urls = automation.searchItemsByNameUnderPrice(
     query=scenario["query"],
-    maxPrice=scenario["max_price"],
+    maxPrice=scenario["maxPrice"],
     limit=scenario["limit"],
 )
 automation.addItemsToCart(urls)
 automation.assertCartTotalNotExceeds(
-    budgetPerItem=scenario["budget_per_item"],
+    budgetPerItem=scenario["budgetPerItem"],
     itemsCount=len(urls),
 )
 ```
@@ -167,7 +174,7 @@ automation.assertCartTotalNotExceeds(
 | Area | Status | Location |
 |------|--------|----------|
 | POM / OOP / SRP / Utils | ✅ | `pages/`, `services/`, `utils/`, `ebay_automation.py` |
-| Data-Driven JSON/YAML | ✅ | `data/`, `DataLoader` |
+| Data-Driven JSON/CSV/YAML | ✅ | `data/`, `DataLoader` |
 | Reports Allure / HTML / JUnit | ✅ | `pytest.ini`, `reports/` |
 | Static AI code review | ✅ | `ReadMeAIBugs.md`, `resources/buggy_ai_test.py` |
 | README + architecture | ✅ | `README.md`, `docs/ARCHITECTURE.md` |

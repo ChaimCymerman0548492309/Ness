@@ -1,0 +1,4 @@
+id,name,query,maxPrice,limit,budgetPerItem,enabled
+shoes_under_budget,Search shoes under $220 and verify cart total,shoes,220,5,220,true
+headphones_under_budget,Search headphones under $80 and verify cart total,headphones,80,3,80,true
+watch_under_budget,Search watch under $150 and verify cart total,watch,150,4,150,false

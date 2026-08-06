@@ -8,6 +8,7 @@ from pathlib import Path
 import pytest
 from playwright.sync_api import Browser, BrowserContext, Page, sync_playwright
 
+from utils.click_highlighter import CLICK_HIGHLIGHT_INIT_SCRIPT
 from utils.config_loader import ConfigLoader, PROJECT_ROOT
 
 config = ConfigLoader()
@@ -63,24 +64,38 @@ def browser(app_config: ConfigLoader) -> Browser:
         browser.close()
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def context(browser: Browser, app_config: ConfigLoader) -> BrowserContext:
-    # Creates a fresh isolated browser context for each test.
+    # One shared browser window for the whole pytest session (avoids reopen flicker).
     context = browser.new_context(
         viewport={"width": 1440, "height": 900},
         locale="en-US",
     )
     context.set_default_timeout(int(app_config.get("timeout_ms", 30000)))
+    # Orange glow around clicked/focused elements so headed demos show automation intent.
+    context.add_init_script(CLICK_HIGHLIGHT_INIT_SCRIPT)
     yield context
     context.close()
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def page(context: BrowserContext) -> Page:
-    # Opens a new browser tab (page) inside the test context.
+    # Reuses a single tab for all tests so the headed browser stays open.
     page = context.new_page()
     yield page
     page.close()
+
+
+@pytest.fixture(autouse=True)
+def _reset_shared_page_between_tests(page: Page) -> None:
+    # Clears cookies/storage between tests while keeping the same browser window.
+    yield
+    try:
+        page.unroute("https://www.ebay.com/**")
+    except Exception:
+        pass
+    page.context.clear_cookies()
+    page.goto("about:blank", wait_until="domcontentloaded")
 
 
 @pytest.fixture

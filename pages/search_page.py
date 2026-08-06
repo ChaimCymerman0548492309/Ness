@@ -26,7 +26,10 @@ class SearchPage(BasePage):
         # Initializes the search page with the base URL from configuration.
         super().__init__(page, config)
         self.base_url = self.config.get("base_url", "https://www.ebay.com")
-        self.short_timeout = int(self.config.section("search").get("short_timeout_ms", 1000))
+        base_short = int(self.config.section("search").get("short_timeout_ms", 1000))
+        slow_mo = int(self.config.get("slow_mo", 0) or 0)
+        # Keep item-level reads resilient when actions are intentionally slowed for demos.
+        self.short_timeout = base_short + (slow_mo * 2)
 
     def open(self) -> None:
         # Opens the eBay homepage and dismisses any pop-up banners.
@@ -46,15 +49,16 @@ class SearchPage(BasePage):
 
     def apply_price_filter(self, max_price: float, min_price: float = 0) -> None:
         # Sets the min/max price filter inputs and applies them when available.
+        visibility_timeout = max(3000, self.short_timeout)
         min_input = self.page.locator(self.MIN_PRICE_INPUT).first
         max_input = self.page.locator(self.MAX_PRICE_INPUT).first
 
-        if min_input.is_visible(timeout=3000):
+        if min_input.is_visible(timeout=visibility_timeout):
             min_input.fill(str(int(min_price)))
-        if max_input.is_visible(timeout=3000):
+        if max_input.is_visible(timeout=visibility_timeout):
             max_input.fill(str(int(max_price)))
             apply_button = self.page.locator(self.APPLY_PRICE_FILTER).first
-            if apply_button.is_visible(timeout=2000):
+            if apply_button.is_visible(timeout=visibility_timeout):
                 apply_button.click()
                 self.wait_for_load()
 

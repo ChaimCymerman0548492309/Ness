@@ -38,6 +38,7 @@ class BasePage:
 
     def dismiss_popups(self) -> None:
         # Attempts to close cookie/consent banners that may block interactions.
+        # Keep timeouts short so missing banners do not dominate slow demo runs.
         candidates = [
             self.page.get_by_role("button", name="Accept"),
             self.page.get_by_role("button", name="Accept all"),
@@ -45,7 +46,7 @@ class BasePage:
             self.page.locator("#gdpr-banner-accept"),
         ]
         for candidate in candidates:
-            self.click_if_visible(candidate, timeout=2000)
+            self.click_if_visible(candidate, timeout=300)
 
     def sync_page(self, page: Page) -> None:
         # Updates the internal page reference after tab switches or navigation.

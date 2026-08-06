@@ -49,7 +49,7 @@ cp config/env.example .env
 # Stable default run
 pytest
 
-# Full deterministic E2E flow for report submission
+# Full deterministic E2E flow for report submission / visible demo
 pytest -m mock_store
 
 # Fast local smoke tests
@@ -81,18 +81,20 @@ This command runs the complete search -> add to cart -> cart total assertion flo
 
 ### Watch the E2E Test Run in a Visible Browser
 
-To see the deterministic E2E flow running in real time, run the mock-store test with a visible browser:
+To see the deterministic E2E flow running in real time, run the mock-store suite with a visible browser.
+Clicks are highlighted with an orange glow automatically:
 
 ```powershell
+$env:ENV_PROFILE="demo"
 $env:HEADLESS="false"
 python -m pytest -v -m mock_store
 ```
 
-To make the browser actions easier to follow, use the dev profile:
+Or use the default `dev` profile (`slow_mo: 120`, headed):
 
 ```powershell
-$env:HEADLESS="false"
 $env:ENV_PROFILE="dev"
+$env:HEADLESS="false"
 python -m pytest -v -m mock_store
 ```
 
@@ -212,9 +214,15 @@ from ebay_automation import EbayAutomation
 automation = EbayAutomation(page)
 automation.authenticate()
 urls = automation.search_items_by_name_under_price("shoes", 220, 5)
-added_count = automation.add_items_to_cart(urls)
-automation.assert_cart_total_not_exceeds(220, added_count)
+automation.add_items_to_cart(urls)
+automation.assert_cart_total_not_exceeds(220, len(urls))
 ```
+
+This matches the brief scenario:
+
+1. `searchItemsByNameUnderPrice("shoes", 220, 5)` → up to 5 URLs  
+2. `addItemsToCart(urls)`  
+3. `assertCartTotalNotExceeds(220, urls.length)` → total ≤ `220 * len(urls)`
 
 ---
 
@@ -268,7 +276,7 @@ Only scenarios with `enabled: true` are loaded by the parameterized tests.
 
 ## Requirement Mapping
 
-See [docs/REQUIREMENTS_COMPLIANCE.md](docs/REQUIREMENTS_COMPLIANCE.md).
+Full section-4 checklist (every bullet): [docs/REQUIREMENTS_COMPLIANCE.md](docs/REQUIREMENTS_COMPLIANCE.md).
 
 | Criterion | Implementation |
 |-----------|----------------|
@@ -276,6 +284,7 @@ See [docs/REQUIREMENTS_COMPLIANCE.md](docs/REQUIREMENTS_COMPLIANCE.md).
 | Robust locators and dynamic behavior | XPath, fallback selectors, pagination, variants, `PriceParser` |
 | Data Driven / ENV / Profiles | JSON, YAML, `settings.yaml`, `.env` |
 | Reports and documentation | Allure, HTML, JUnit, README, docs |
+| §4 four core functions | `authenticate`, `search_items_by_name_under_price`, `add_items_to_cart`, `assert_cart_total_not_exceeds` |
 
 ---
 

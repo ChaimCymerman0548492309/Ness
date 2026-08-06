@@ -1,4 +1,4 @@
-"""Data-driven end-to-end scenarios for eBay commerce flow."""
+"""Data-driven end-to-end scenarios against the deterministic mock store."""
 
 from __future__ import annotations
 
@@ -26,10 +26,15 @@ def _enabled_scenarios() -> list[dict]:
 
 @pytest.mark.e2e
 @pytest.mark.data_driven
-@pytest.mark.live_ebay
+@pytest.mark.mock_store
 @pytest.mark.parametrize("scenario", _enabled_scenarios(), ids=lambda item: item["id"])
-def test_full_e2e_shopping_flow(page: Page, app_config: ConfigLoader, scenario: dict) -> None:
-    # Runs the complete e2e flow: auth → search → add to cart → assert cart total.
+def test_full_e2e_shopping_flow(
+    page: Page,
+    app_config: ConfigLoader,
+    mock_ebay_store: None,
+    scenario: dict,
+) -> None:
+    # Runs the complete e2e flow on mock data: auth → search → add to cart → assert total.
     allure.dynamic.title(scenario["name"])
     allure.dynamic.description(
         f"Query={scenario['query']}, max_price={scenario['max_price']}, "
@@ -45,24 +50,29 @@ def test_full_e2e_shopping_flow(page: Page, app_config: ConfigLoader, scenario: 
         limit=scenario["limit"],
     )
 
-    if not urls:
-        pytest.skip(f"No items found for scenario '{scenario['id']}'")
+    assert len(urls) == scenario["limit"], (
+        f"Expected {scenario['limit']} URLs for '{scenario['id']}', got {len(urls)}"
+    )
 
     added_count = automation.add_items_to_cart(urls)
-    if added_count == 0:
-        pytest.skip(f"No cart-eligible items could be added for scenario '{scenario['id']}'")
+    assert added_count == len(urls)
 
+    # Brief §4.3 scenario: assertCartTotalNotExceeds(budget, urls.length)
     automation.assert_cart_total_not_exceeds(
         budget_per_item=scenario["budget_per_item"],
-        items_count=added_count,
+        items_count=len(urls),
     )
 
 
 @pytest.mark.e2e
 @pytest.mark.data_driven
-@pytest.mark.live_ebay
-def test_full_e2e_from_yaml(page: Page, app_config: ConfigLoader) -> None:
-    # Runs the e2e flow using a scenario loaded from the YAML data file.
+@pytest.mark.mock_store
+def test_full_e2e_from_yaml(
+    page: Page,
+    app_config: ConfigLoader,
+    mock_ebay_store: None,
+) -> None:
+    # Proves YAML data-loading drives the same search API without repeating a full cart loop.
     scenario = DataLoader(data_file=YAML_DATA_FILE).get_scenario("shoes_under_budget")
 
     automation = EbayAutomation(page, app_config)
@@ -74,22 +84,17 @@ def test_full_e2e_from_yaml(page: Page, app_config: ConfigLoader) -> None:
         limit=scenario["limit"],
     )
 
-    if not urls:
-        pytest.skip("No items found for YAML scenario")
-
-    added_count = automation.add_items_to_cart(urls)
-    if added_count == 0:
-        pytest.skip("No cart-eligible items could be added for YAML scenario")
-
-    automation.assert_cart_total_not_exceeds(
-        budget_per_item=scenario["budget_per_item"],
-        items_count=added_count,
-    )
+    assert len(urls) == scenario["limit"]
+    assert all(url.startswith("https://www.ebay.com/itm/") for url in urls)
 
 
 @pytest.mark.smoke
-@pytest.mark.live_ebay
-def test_search_returns_urls_under_price(page: Page, app_config: ConfigLoader) -> None:
+@pytest.mark.mock_store
+def test_search_returns_urls_under_price(
+    page: Page,
+    app_config: ConfigLoader,
+    mock_ebay_store: None,
+) -> None:
     # Verifies that search returns a list of at most 5 URLs under the price limit.
     auth_service = AuthService(page, app_config)
     search_service = SearchService(page, app_config)
@@ -98,11 +103,18 @@ def test_search_returns_urls_under_price(page: Page, app_config: ConfigLoader) -
     urls = search_service.search_items_by_name_under_price("shoes", 220, 5)
 
     assert isinstance(urls, list)
+    assert len(urls) == 5
     assert len(urls) <= 5
 
 
 @pytest.mark.smoke
-def test_cart_total_assertion_signature(page: Page, app_config: ConfigLoader) -> None:
-    # Verifies the cart assertion service is callable without a populated cart.
+@pytest.mark.mock_store
+def test_cart_total_assertion_signature(
+    page: Page,
+    app_config: ConfigLoader,
+    mock_ebay_store: None,
+) -> None:
+    # Verifies the cart assertion service is callable and works on an empty mock cart.
     cart_assertion_service = CartAssertionService(page, app_config)
     assert callable(cart_assertion_service.assert_cart_total_not_exceeds)
+    cart_assertion_service.assert_cart_total_not_exceeds(budget_per_item=220, items_count=0)

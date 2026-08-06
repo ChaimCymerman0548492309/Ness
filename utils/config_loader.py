@@ -42,11 +42,14 @@ class ConfigLoader:
         env_map = {
             "base_url": os.getenv("BASE_URL"),
             "headless": os.getenv("HEADLESS"),
+            "slow_mo": os.getenv("SLOW_MO"),
         }
         for env_key, env_value in env_map.items():
             if env_value is not None:
                 if env_key == "headless":
                     merged[env_key] = env_value.lower() in {"1", "true", "yes"}
+                elif env_key == "slow_mo":
+                    merged[env_key] = int(env_value)
                 else:
                     merged[env_key] = env_value
 

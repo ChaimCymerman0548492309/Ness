@@ -35,12 +35,12 @@ class SearchService:
                 limit=limit,
             )
         except PlaywrightError as exc:
-            urls = []
             allure.attach(
                 str(exc),
-                name="Live eBay search unavailable",
+                name="Search flow Playwright error",
                 attachment_type=allure.attachment_type.TEXT,
             )
+            raise
 
         allure.attach(
             "\n".join(urls) if urls else "No matching items found",

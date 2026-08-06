@@ -50,14 +50,21 @@ class CartService:
 
     def _return_to_search_context(self) -> None:
         # Navigates back to the search results tab or page after adding an item.
-        if len(self.page.context.pages) > 1:
-            self.page = self.page.context.pages[0]
-            self.page.bring_to_front()
-        else:
-            self.page.go_back(wait_until="domcontentloaded")
-
-        self._sync_pages()
-        self.search_page.wait_for_load()
+        try:
+            if len(self.page.context.pages) > 1:
+                self.page = self.page.context.pages[0]
+                self.page.bring_to_front()
+            else:
+                self.page.go_back(wait_until="domcontentloaded")
+            self._sync_pages()
+            self.search_page.wait_for_load()
+        except PlaywrightError as exc:
+            allure.attach(
+                str(exc),
+                name="Return to search fallback",
+                attachment_type=allure.attachment_type.TEXT,
+            )
+            self._sync_pages()
 
     def _sync_pages(self) -> None:
         # Keeps all page objects pointing to the same active Playwright page instance.

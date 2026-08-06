@@ -28,23 +28,19 @@ class ProductPage(BasePage):
 
     def select_random_variants(self) -> None:
         # Picks random available options for size, color, and quantity dropdowns.
+        visibility_timeout = max(800, int(self.config.get("slow_mo", 0) or 0) + 400)
         selects = self.page.locator(self.VARIANT_SELECTORS)
         for index in range(selects.count()):
             select = selects.nth(index)
-            if not select.is_visible(timeout=1000):
+            if not select.is_visible(timeout=visibility_timeout):
                 continue
 
-            options = select.locator("option")
-            valid_indexes = [
-                option_index
-                for option_index in range(options.count())
-                if options.nth(option_index).get_attribute("value")
-            ]
-            if valid_indexes:
-                select.select_option(index=random.choice(valid_indexes))
+            option_count = select.locator("option").count()
+            if option_count > 1:
+                select.select_option(index=random.randint(1, option_count - 1))
 
         quantity = self.page.locator(self.QUANTITY_INPUT).first
-        if quantity.is_visible(timeout=1000):
+        if quantity.is_visible(timeout=visibility_timeout):
             quantity.fill("1")
 
     def add_to_cart(self) -> None:
@@ -53,4 +49,5 @@ class ProductPage(BasePage):
         add_button = self.page.locator(self.ADD_TO_CART).first
         add_button.wait_for(state="visible", timeout=self.timeout)
         add_button.click()
-        self.page.wait_for_timeout(1500)
+        # Brief pause so the click highlight is visible in headed demos.
+        self.page.wait_for_timeout(200)

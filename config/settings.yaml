@@ -9,9 +9,15 @@ default:
 profiles:
   dev:
     headless: false
+    slow_mo: 80
+    timeout_ms: 20000
+  demo:
+    headless: false
     slow_mo: 100
+    timeout_ms: 20000
   ci:
     headless: true
+    slow_mo: 0
     retries: 1
   staging:
     base_url: "https://www.ebay.com"
@@ -20,7 +26,7 @@ search:
   default_limit: 5
   max_pages: 5
   max_items_per_page: 30
-  short_timeout_ms: 1000
+  short_timeout_ms: 800
 
 cart:
   guest_mode: true

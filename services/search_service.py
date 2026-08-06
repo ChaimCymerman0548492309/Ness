@@ -26,8 +26,7 @@ class SearchService:
         limit: int = 5,
     ) -> list[str]:
         # Searches by query, applies price filter, and returns up to limit qualifying item URLs.
-        self.search_page.open()
-        self.search_page.search(query)
+        self.search_page.search(query, max_price=max_price)
         self.search_page.apply_price_filter(max_price=max_price)
 
         urls = self.search_page.collect_item_urls_under_price_xpath(

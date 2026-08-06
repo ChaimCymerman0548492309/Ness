@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from urllib.parse import urlencode
+
 from playwright.sync_api import Locator, Page, TimeoutError as PlaywrightTimeoutError
 
 from pages.base_page import BasePage
@@ -31,12 +33,14 @@ class SearchPage(BasePage):
         self.goto(self.base_url)
         self.dismiss_popups()
 
-    def search(self, query: str) -> None:
-        # Types the search query and submits it to display results.
-        search_box = self.page.locator(self.SEARCH_INPUT).first
-        search_box.click()
-        search_box.fill(query)
-        self.page.locator(self.SEARCH_BUTTON).first.click()
+    def search(self, query: str, max_price: float | None = None) -> None:
+        # Opens an eBay search-results URL directly to avoid fragile homepage interactions.
+        params: dict[str, str] = {"_nkw": query}
+        if max_price is not None:
+            params["_udlo"] = "0"
+            params["_udhi"] = str(int(max_price))
+
+        self.goto(f"{self.base_url}/sch/i.html?{urlencode(params)}")
         self.wait_for_load()
         self.dismiss_popups()
 

@@ -4,27 +4,27 @@
       "id": "shoes_under_budget",
       "name": "Search shoes under $220 and verify cart total",
       "query": "shoes",
-      "max_price": 220,
+      "maxPrice": 220,
       "limit": 5,
-      "budget_per_item": 220,
+      "budgetPerItem": 220,
       "enabled": true
     },
     {
       "id": "headphones_under_budget",
       "name": "Search headphones under $80 and verify cart total",
       "query": "headphones",
-      "max_price": 80,
+      "maxPrice": 80,
       "limit": 3,
-      "budget_per_item": 80,
+      "budgetPerItem": 80,
       "enabled": true
     },
     {
       "id": "watch_under_budget",
       "name": "Search watch under $150 and verify cart total",
       "query": "watch",
-      "max_price": 150,
+      "maxPrice": 150,
       "limit": 4,
-      "budget_per_item": 150,
+      "budgetPerItem": 150,
       "enabled": false
     }
   ]

@@ -48,5 +48,5 @@ class LoginPage(BasePage):
         self.wait_for_load()
 
     def continue_as_guest(self) -> None:
-        # Opens the homepage without signing in (guest mode stub).
-        self.open()
+        # Guest / Login stub — no navigation required; search flow opens pages when needed.
+        return

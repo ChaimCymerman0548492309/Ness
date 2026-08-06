@@ -8,7 +8,13 @@ import allure
 import pytest
 from playwright.sync_api import Page
 
-from ebay_automation import EbayAutomation
+from ebay_automation import (
+    EbayAutomation,
+    assertCartTotalNotExceeds,
+    addItemsToCart,
+    authenticate,
+    searchItemsByNameUnderPrice,
+)
 from services.auth_service import AuthService
 from services.cart_assertion_service import CartAssertionService
 from services.search_service import SearchService
@@ -17,10 +23,10 @@ from utils.data_loader import DataLoader
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 YAML_DATA_FILE = PROJECT_ROOT / "data" / "test_scenarios.yaml"
+CSV_DATA_FILE = PROJECT_ROOT / "data" / "test_scenarios.csv"
 
 
 def _enabled_scenarios() -> list[dict]:
-    # Loads all enabled test scenarios from the external JSON data file.
     return DataLoader().load_scenarios(enabled_only=True)
 
 
@@ -37,7 +43,7 @@ def test_full_e2e_shopping_flow(
     # Full brief scenario: searchItemsByNameUnderPrice → addItemsToCart → assertCartTotalNotExceeds.
     allure.dynamic.title(scenario["name"])
     allure.dynamic.description(
-        f"Query={scenario['query']}, maxPrice={scenario['max_price']}, "
+        f"Query={scenario['query']}, maxPrice={scenario['maxPrice']}, "
         f"limit={scenario['limit']}"
     )
 
@@ -46,7 +52,7 @@ def test_full_e2e_shopping_flow(
 
     urls = automation.searchItemsByNameUnderPrice(
         query=scenario["query"],
-        maxPrice=scenario["max_price"],
+        maxPrice=scenario["maxPrice"],
         limit=scenario["limit"],
     )
 
@@ -56,7 +62,7 @@ def test_full_e2e_shopping_flow(
 
     automation.addItemsToCart(urls)
     automation.assertCartTotalNotExceeds(
-        budgetPerItem=scenario["budget_per_item"],
+        budgetPerItem=scenario["budgetPerItem"],
         itemsCount=len(urls),
     )
 
@@ -69,20 +75,48 @@ def test_full_e2e_from_yaml(
     app_config: ConfigLoader,
     mock_ebay_store: None,
 ) -> None:
-    # Proves YAML data-loading drives searchItemsByNameUnderPrice.
     scenario = DataLoader(data_file=YAML_DATA_FILE).get_scenario("shoes_under_budget")
 
-    automation = EbayAutomation(page, app_config)
-    automation.authenticate()
-
-    urls = automation.searchItemsByNameUnderPrice(
+    authenticate(page, config=app_config)
+    urls = searchItemsByNameUnderPrice(
+        page,
         query=scenario["query"],
-        maxPrice=scenario["max_price"],
+        maxPrice=scenario["maxPrice"],
         limit=scenario["limit"],
+        config=app_config,
     )
 
     assert len(urls) == scenario["limit"]
     assert all(url.startswith("https://www.ebay.com/itm/") for url in urls)
+
+
+@pytest.mark.e2e
+@pytest.mark.data_driven
+@pytest.mark.mock_store
+def test_full_e2e_from_csv(
+    page: Page,
+    app_config: ConfigLoader,
+    mock_ebay_store: None,
+) -> None:
+    scenario = DataLoader(data_file=CSV_DATA_FILE).get_scenario("shoes_under_budget")
+
+    authenticate(page, config=app_config)
+    urls = searchItemsByNameUnderPrice(
+        page,
+        query=scenario["query"],
+        maxPrice=scenario["maxPrice"],
+        limit=scenario["limit"],
+        config=app_config,
+    )
+
+    assert len(urls) == scenario["limit"]
+    addItemsToCart(page, urls, config=app_config)
+    assertCartTotalNotExceeds(
+        page,
+        budgetPerItem=scenario["budgetPerItem"],
+        itemsCount=len(urls),
+        config=app_config,
+    )
 
 
 @pytest.mark.smoke
@@ -92,7 +126,6 @@ def test_search_returns_urls_under_price(
     app_config: ConfigLoader,
     mock_ebay_store: None,
 ) -> None:
-    # Verifies searchItemsByNameUnderPrice returns at most 5 URLs under the price limit.
     auth_service = AuthService(page, app_config)
     search_service = SearchService(page, app_config)
 
@@ -111,7 +144,6 @@ def test_cart_total_assertion_signature(
     app_config: ConfigLoader,
     mock_ebay_store: None,
 ) -> None:
-    # Verifies assertCartTotalNotExceeds is callable and works on an empty mock cart.
     cart_assertion_service = CartAssertionService(page, app_config)
     assert callable(cart_assertion_service.assertCartTotalNotExceeds)
     cart_assertion_service.assertCartTotalNotExceeds(budgetPerItem=220, itemsCount=0)

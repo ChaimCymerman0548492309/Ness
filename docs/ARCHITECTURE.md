@@ -56,7 +56,7 @@ Each page class encapsulates:
 
 ### Data-Driven Testing
 
-Test scenarios are externalized to `data/test_scenarios.json` and `data/test_scenarios.yaml`.
+Test scenarios are externalized to `data/test_scenarios.json`, `data/test_scenarios.csv`, and `data/test_scenarios.yaml`.
 The `DataLoader` reads enabled scenarios; `pytest.mark.parametrize` feeds them into tests.
 
 ### Configuration Profiles

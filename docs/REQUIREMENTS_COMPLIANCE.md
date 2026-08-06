@@ -74,7 +74,7 @@ Implemented in: `tests/test_ebay_e2e.py::test_full_e2e_shopping_flow`
 
 ---
 
-## AI Bug Exercise
+## Static Review Exercise
 
 | Requirement | Status | Location |
 |-------------|--------|----------|

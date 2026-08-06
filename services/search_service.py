@@ -26,7 +26,7 @@ class SearchService:
         limit: int = 5,
     ) -> list[str]:
         # Searches by query, applies price filter, and returns up to limit qualifying item URLs.
-        self.search_page.open()
+        # Navigates directly to search results; homepage open is not required beforehand.
         self.search_page.search(query)
         self.search_page.apply_price_filter(max_price=max_price)
 
@@ -34,6 +34,11 @@ class SearchService:
             max_price=max_price,
             limit=limit,
         )
+        if not urls:
+            urls = self.search_page.collect_item_urls_under_price(
+                max_price=max_price,
+                limit=limit,
+            )
 
         allure.attach(
             "\n".join(urls) if urls else "No matching items found",

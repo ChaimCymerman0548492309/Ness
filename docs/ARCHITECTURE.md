@@ -65,7 +65,7 @@ The `DataLoader` reads enabled scenarios; `pytest.mark.parametrize` feeds them i
 
 ```
 ENV_PROFILE=dev   → headless=false, slow_mo=100
-ENV_PROFILE=ci    → headless=true, retries=1
+ENV_PROFILE=ci    → headless=true, navigation_retries=3
 ```
 
 ## Core Workflow

@@ -1,123 +1,188 @@
-# Static Review — `resources/buggy_ai_test.py`
+# סקירה סטטית — קוד בדיקה שנוצר ב-AI
 
-Review only. Do not run this file.
+הקוד שלהלן לא רץ כמו שצריך. הסקירה כאן היא בדיקה סטטית בלבד (בלי להריץ).
 
-The flow should be: search by name → filter by price → add to cart → assert total.
+**קוד מקור (כפי שהגיע מהעובד):**
+```python
+from playwright.sync_api import sync_playwright
+from selenium import webdriver
+import time
+
+def test_search_functionality():
+browser = sync_playwright().start().chromium.launch()
+page
+=
+browser.new_page()
+page.goto("https://example.com")
+time.sleep(2)
+search_box = page.locator("#search")
+search_box.fill("playwright testing")
+page.locator (".button").click()
+time.sleep(3)
+results = page.locator(".result-item")
+browser.close()
+```
 
 ---
 
-## 1. Wrong selectors (search)
+## 1. שגיאת הזחה — הקוד לא חוקי ב-Python
 
-**Code:**
+**שורות בעייתיות:**
 ```python
-page.fill("#search", query)
-page.click("button")
-items = page.query_selector_all(".item")
+def test_search_functionality():
+browser = sync_playwright().start().chromium.launch()
 ```
 
-`#search` and `.item` are not eBay selectors. `button` matches the first button on the page (cookie banner, menu, etc.).
+גוף הפונקציה חייב להיות מוזח פנימה. כפי שזה כתוב, Python יזרוק `IndentationError` עוד לפני ש-Pytest מגיע לבדיקה.
 
-**Fix:**
+**תיקון:**
 ```python
-page.locator('#gh-ac, input[name="_nkw"]').first.fill(query)
-page.locator('#gh-search-btn, button[type="submit"]').first.click()
-items = page.locator("li.s-item").all()
-```
-
----
-
-## 2. Price parsed from the whole card
-
-**Code:**
-```python
-price_text = item.inner_text()
-price = float(price_text.replace("$", ""))
-if price < max_price:
-```
-
-`inner_text()` returns title + shipping + labels + price. `float()` will fail or return wrong values. Also uses `<` instead of `<=`.
-
-**Fix:**
-```python
-price_text = item.locator(".s-item__price").first.inner_text()
-# parse first number only, handle commas
-if price is not None and price <= max_price:
-```
-
-Use a small helper (regex) like in `utils/price_parser.py`.
-
----
-
-## 3. No pagination
-
-**Code:**
-```python
-for item in items:
+def test_search_functionality():
+    browser = sync_playwright().start().chromium.launch()
+    page = browser.new_page()
     ...
-    if len(urls) == limit:
-        break
-return urls
-```
-
-Only the current page is scanned. If there are fewer than `limit` matches here, the code never clicks Next.
-
-**Fix:** loop with `while len(collected) < limit`, and after each page try `a.pagination__next` / `a[rel="next"]` before giving up.
-
----
-
-## 4. Missing link check + weak cart assert
-
-**Search — code:**
-```python
-link = item.query_selector("a")
-urls.append(link.get_attribute("href"))
-```
-
-If `link` is `None` → `AttributeError`. Sponsored items can slip in.
-
-**Fix:** use `a.s-item__link`, check `href`, skip "Shop on eBay" titles.
-
-**Cart — code:**
-```python
-total_text = page.inner_text(".total")
-total = float(total_text)
-assert total < budget_per_item * items_count
-```
-
-`.total` is too generic. Same parse/assert issues as above (`<=` not `<`). No screenshot for the report.
-
-**Fix:**
-```python
-total_text = page.locator('[data-testid="TOTAL"], .subtotal').first.inner_text()
-assert total <= budget_per_item * items_count
-page.screenshot(path="reports/cart_assertion.png")
 ```
 
 ---
 
-## 5. Incomplete add-to-cart
+## 2. ערבוב Selenium ו-Playwright
 
-**Code:**
+**שורה בעייתית:**
 ```python
-page.goto(url)
-page.click("text=Add to cart")
-page.go_back()
+from selenium import webdriver
 ```
 
-No size/color/qty selection. `go_back()` may not return to search. No screenshot per item.
+ה-import של Selenium לא בשימוש בכלל, אבל Playwright כן. זה סימן קלאסי לקוד שה-AI "הדביק" משני מקורות — שני דрайверים שונים, API שונה, ולא עובדים יחד באותה בדיקה.
 
-**Fix:** select variants first, use a specific Add button locator, return to search context explicitly, save a screenshot after each add (see `ProductPage` / `CartService` in this project).
+**תיקון:** להשאיר רק Playwright (או רק Selenium — לא את שניהם):
+```python
+from playwright.sync_api import sync_playwright
+# מחק: from selenium import webdriver
+```
 
 ---
 
-## Summary
+## 3. ניהול משאבים לא תקין
 
-| Issue | Severity |
-|-------|----------|
-| Selectors | High |
-| Price parsing | High |
-| Pagination | High |
-| Links + cart assert | Medium |
-| Add to cart | Medium |
+**שורות בעייתיות:**
+```python
+browser = sync_playwright().start().chromium.launch()
+...
+browser.close()
+```
 
-The main framework fixes these with POM, XPath collection, `PriceParser`, paging, and screenshots/traces.
+קוראים ל-`.start()` על Playwright אבל אף פעם לא ל-`.stop()`. סגירת ה-browser בלבד עלולה להשאיר תהליך driver תלוי ברקע, במיוחד כשמריצים הרבה בדיקות.
+
+**תיקון — context manager:**
+```python
+def test_search_functionality():
+    with sync_playwright() as p:
+        browser = p.chromium.launch(headless=True)
+        page = browser.new_page()
+        try:
+            page.goto("https://example.com")
+            ...
+        finally:
+            browser.close()
+```
+
+---
+
+## 4. `time.sleep` במקום המתנה מבוססת DOM
+
+**שורות בעייתיות:**
+```python
+time.sleep(2)
+...
+time.sleep(3)
+```
+
+Sleep קבוע לא קשור לזמן טעינה אמיתי של הדף — על מכונה איטית הבדיקה נכשלת, על מכונה מהירה מבזבזים זמן. Playwright כבר ממתין אוטומטית לפעולות; כשצריך המתנה מפורשת, עדיף לחכות לאלמנט.
+
+**תיקון:**
+```python
+search_box = page.locator("#search")
+search_box.wait_for(state="visible", timeout=10_000)
+search_box.fill("playwright testing")
+page.locator(".button").click()
+results = page.locator(".result-item")
+results.first.wait_for(state="visible", timeout=10_000)
+```
+
+---
+
+## 5. URL וסלקטורים שלא תואמים לאתר
+
+**שורות בעייתיות:**
+```python
+page.goto("https://example.com")
+search_box = page.locator("#search")
+page.locator(".button").click()
+results = page.locator(".result-item")
+```
+
+`example.com` הוא דף דוגמה — אין בו `#search`, `.button` או `.result-item`. גם `.button` גנרי מדי (יכול לפגוע בכפתור לא נכון). ה-AI כנראה המציא סלקטורים "סטנדרטיים" בלי לבדוק את ה-DOM האמיתי.
+
+**תיקון:** לבחור אתר יעד אמיתי, לפתוח DevTools, ולכתוב locators ספציפיים. לדוגמה באתר עם חיפוש:
+```python
+page.goto("https://www.example-store.com/search")
+search_box = page.get_by_role("searchbox", name="Search products")
+search_box.fill("playwright testing")
+page.get_by_role("button", name="Search").click()
+results = page.locator("[data-testid='search-result']")
+```
+
+---
+
+## 6. אין assertion — הבדיקה תמיד "עוברת"
+
+**שורות בעייתיות:**
+```python
+results = page.locator(".result-item")
+browser.close()
+```
+
+המשתנה `results` נוצר אבל לא נבדק. גם אם החיפוש נכשל או מחזיר 0 תוצאות, Pytest יסמן את הבדיקה כ-passed.
+
+**תיקון:**
+```python
+results = page.locator(".result-item")
+assert results.count() > 0, "Expected at least one search result"
+assert "playwright" in results.first.inner_text().lower()
+```
+
+---
+
+## סיכום
+
+| # | בעיה | חומרה |
+|---|------|--------|
+| 1 | הזחה — SyntaxError | גבוהה |
+| 2 | Selenium + Playwright מעורבבים | בינונית |
+| 3 | `.start()` בלי `.stop()` | בינונית |
+| 4 | `time.sleep` במקום wait | בינונית |
+| 5 | URL/סלקטורים לא קיימים | גבוהה |
+| 6 | אין assertion | גבוהה |
+
+**גרסה מתוקנת (מינימלית):**
+```python
+from playwright.sync_api import sync_playwright
+
+def test_search_functionality():
+    with sync_playwright() as p:
+        browser = p.chromium.launch(headless=True)
+        page = browser.new_page()
+        try:
+            page.goto("https://www.example-store.com/search")
+            search_box = page.get_by_role("searchbox")
+            search_box.wait_for(state="visible")
+            search_box.fill("playwright testing")
+            page.get_by_role("button", name="Search").click()
+            results = page.locator("[data-testid='search-result']")
+            results.first.wait_for(state="visible")
+            assert results.count() > 0
+        finally:
+            browser.close()
+```
+
+הערה: הסלקטורים בגרסה המתוקנת הם דוגמה — חייבים להתאים ל-DOM של האתר שבוחרים לבדוק.

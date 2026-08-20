@@ -1,8 +1,8 @@
-# סקירה סטטית — קוד בדיקה שנוצר ב-AI
+# Static Review — AI-Generated Test Code
 
-הקוד שלהלן לא רץ כמו שצריך. הסקירה כאן היא בדיקה סטטית בלבד (בלי להריץ).
+The code below does not run as expected. This review is static only (not executed).
 
-**קוד מקור (כפי שהגיע מהעובד):**
+**Source code (as received from the teammate):**
 ```python
 from playwright.sync_api import sync_playwright
 from selenium import webdriver
@@ -25,55 +25,35 @@ browser.close()
 
 ---
 
-## 1. שגיאת הזחה — הקוד לא חוקי ב-Python
+## 1. Mixed Selenium and Playwright
 
-**שורות בעייתיות:**
-```python
-def test_search_functionality():
-browser = sync_playwright().start().chromium.launch()
-```
-
-גוף הפונקציה חייב להיות מוזח פנימה. כפי שזה כתוב, Python יזרוק `IndentationError` עוד לפני ש-Pytest מגיע לבדיקה.
-
-**תיקון:**
-```python
-def test_search_functionality():
-    browser = sync_playwright().start().chromium.launch()
-    page = browser.new_page()
-    ...
-```
-
----
-
-## 2. ערבוב Selenium ו-Playwright
-
-**שורה בעייתית:**
+**Problematic line:**
 ```python
 from selenium import webdriver
 ```
 
-ה-import של Selenium לא בשימוש בכלל, אבל Playwright כן. זה סימן קלאסי לקוד שה-AI "הדביק" משני מקורות — שני דрайверים שונים, API שונה, ולא עובדים יחד באותה בדיקה.
+The Selenium import is never used, while Playwright is. This is a common sign of AI-generated code pasted from two sources — different drivers, different APIs, and they do not work together in the same test.
 
-**תיקון:** להשאיר רק Playwright (או רק Selenium — לא את שניהם):
+**Fix:** keep Playwright only (or Selenium only — not both):
 ```python
 from playwright.sync_api import sync_playwright
-# מחק: from selenium import webdriver
+# remove: from selenium import webdriver
 ```
 
 ---
 
-## 3. ניהול משאבים לא תקין
+## 2. Improper resource cleanup
 
-**שורות בעייתיות:**
+**Problematic lines:**
 ```python
 browser = sync_playwright().start().chromium.launch()
 ...
 browser.close()
 ```
 
-קוראים ל-`.start()` על Playwright אבל אף פעם לא ל-`.stop()`. סגירת ה-browser בלבד עלולה להשאיר תהליך driver תלוי ברקע, במיוחד כשמריצים הרבה בדיקות.
+`.start()` is called on Playwright but `.stop()` never is. Closing the browser alone can leave a driver process running in the background, especially when running many tests.
 
-**תיקון — context manager:**
+**Fix — use a context manager:**
 ```python
 def test_search_functionality():
     with sync_playwright() as p:
@@ -88,18 +68,18 @@ def test_search_functionality():
 
 ---
 
-## 4. `time.sleep` במקום המתנה מבוססת DOM
+## 3. `time.sleep` instead of DOM-based waits
 
-**שורות בעייתיות:**
+**Problematic lines:**
 ```python
 time.sleep(2)
 ...
 time.sleep(3)
 ```
 
-Sleep קבוע לא קשור לזמן טעינה אמיתי של הדף — על מכונה איטית הבדיקה נכשלת, על מכונה מהירה מבזבזים זמן. Playwright כבר ממתין אוטומטית לפעולות; כשצריך המתנה מפורשת, עדיף לחכות לאלמנט.
+Fixed sleeps are not tied to actual page load time — the test fails on a slow machine and wastes time on a fast one. Playwright already auto-waits on actions; when an explicit wait is needed, wait for an element instead.
 
-**תיקון:**
+**Fix:**
 ```python
 search_box = page.locator("#search")
 search_box.wait_for(state="visible", timeout=10_000)
@@ -111,9 +91,9 @@ results.first.wait_for(state="visible", timeout=10_000)
 
 ---
 
-## 5. URL וסלקטורים שלא תואמים לאתר
+## 4. URL and selectors do not match the site
 
-**שורות בעייתיות:**
+**Problematic lines:**
 ```python
 page.goto("https://example.com")
 search_box = page.locator("#search")
@@ -121,9 +101,9 @@ page.locator(".button").click()
 results = page.locator(".result-item")
 ```
 
-`example.com` הוא דף דוגמה — אין בו `#search`, `.button` או `.result-item`. גם `.button` גנרי מדי (יכול לפגוע בכפתור לא נכון). ה-AI כנראה המציא סלקטורים "סטנדרטיים" בלי לבדוק את ה-DOM האמיתי.
+`example.com` is a placeholder page — it has no `#search`, `.button`, or `.result-item`. `.button` is also too generic (can match the wrong button). The AI likely invented “standard” selectors without checking the real DOM.
 
-**תיקון:** לבחור אתר יעד אמיתי, לפתוח DevTools, ולכתוב locators ספציפיים. לדוגמה באתר עם חיפוש:
+**Fix:** pick a real target site, open DevTools, and write specific locators. Example for a site with search:
 ```python
 page.goto("https://www.example-store.com/search")
 search_box = page.get_by_role("searchbox", name="Search products")
@@ -134,17 +114,17 @@ results = page.locator("[data-testid='search-result']")
 
 ---
 
-## 6. אין assertion — הבדיקה תמיד "עוברת"
+## 5. No assertion — the test always “passes”
 
-**שורות בעייתיות:**
+**Problematic lines:**
 ```python
 results = page.locator(".result-item")
 browser.close()
 ```
 
-המשתנה `results` נוצר אבל לא נבדק. גם אם החיפוש נכשל או מחזיר 0 תוצאות, Pytest יסמן את הבדיקה כ-passed.
+The `results` variable is created but never checked. Even if search fails or returns zero results, Pytest will mark the test as passed.
 
-**תיקון:**
+**Fix:**
 ```python
 results = page.locator(".result-item")
 assert results.count() > 0, "Expected at least one search result"
@@ -153,18 +133,17 @@ assert "playwright" in results.first.inner_text().lower()
 
 ---
 
-## סיכום
+## Summary
 
-| # | בעיה | חומרה |
-|---|------|--------|
-| 1 | הזחה — SyntaxError | גבוהה |
-| 2 | Selenium + Playwright מעורבבים | בינונית |
-| 3 | `.start()` בלי `.stop()` | בינונית |
-| 4 | `time.sleep` במקום wait | בינונית |
-| 5 | URL/סלקטורים לא קיימים | גבוהה |
-| 6 | אין assertion | גבוהה |
+| # | Issue | Severity |
+|---|-------|----------|
+| 1 | Selenium + Playwright mixed | Medium |
+| 2 | `.start()` without `.stop()` | Medium |
+| 3 | `time.sleep` instead of wait | Medium |
+| 4 | URL/selectors do not exist | High |
+| 5 | No assertion | High |
 
-**גרסה מתוקנת (מינימלית):**
+**Minimal corrected version:**
 ```python
 from playwright.sync_api import sync_playwright
 
@@ -185,4 +164,4 @@ def test_search_functionality():
             browser.close()
 ```
 
-הערה: הסלקטורים בגרסה המתוקנת הם דוגמה — חייבים להתאים ל-DOM של האתר שבוחרים לבדוק.
+Note: selectors in the corrected version are examples — they must match the DOM of the site under test.
